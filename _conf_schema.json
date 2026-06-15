@@ -1,0 +1,75 @@
+{
+  "api_key": {
+    "description": "UApiPro API 密钥",
+    "type": "string",
+    "hint": "在 UApiPro 控制台获取。不填则使用免费额度。",
+    "obvious_hint": true
+  },
+  "cell_w": {
+    "description": "视图宽度",
+    "type": "int",
+    "default": 400,
+    "hint": "每个视图的宽度（像素）"
+  },
+  "cell_h": {
+    "description": "视图高度",
+    "type": "int",
+    "default": 550,
+    "hint": "每个视图的高度（像素）"
+  },
+  "render_isometric": {
+    "description": "3D 视角",
+    "type": "bool",
+    "default": true
+  },
+  "angle_iso": {
+    "description": "3D 视角俯仰角",
+    "type": "int",
+    "default": 25,
+    "hint": "3D 斜侧视角的俯仰角度"
+  },
+  "render_front": {
+    "description": "正面视图",
+    "type": "bool",
+    "default": true
+  },
+  "angle_front": {
+    "description": "正面俯仰角",
+    "type": "int",
+    "default": 0,
+    "hint": "正面视图的俯仰角度"
+  },
+  "render_back": {
+    "description": "背面视图",
+    "type": "bool",
+    "default": true
+  },
+  "angle_back": {
+    "description": "背面俯仰角",
+    "type": "int",
+    "default": 0,
+    "hint": "背面视图的俯仰角度"
+  },
+  "render_left": {
+    "description": "左侧视图",
+    "type": "bool",
+    "default": true
+  },
+  "angle_left": {
+    "description": "左侧俯仰角",
+    "type": "int",
+    "default": 0,
+    "hint": "左侧视图的俯仰角度"
+  },
+  "render_right": {
+    "description": "右侧视图",
+    "type": "bool",
+    "default": true
+  },
+  "angle_right": {
+    "description": "右侧俯仰角",
+    "type": "int",
+    "default": 0,
+    "hint": "右侧视图的俯仰角度"
+  }
+}
