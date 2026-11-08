@@ -125,11 +125,34 @@ class SkinPlugin(Star):
                 preview_path, gif_path = await asyncio.to_thread(
                     render_skin_assets, skin_data, resolved_name, Path(temp_dir),
                 )
-                yield event.image_result(str(preview_path))
-                yield event.image_result(str(gif_path))
+                try:
+                    await self._send_skin_images(event, preview_path, gif_path)
+                except Exception as e:
+                    logger.error(f"Skin image send error: {e}", exc_info=True)
+                    yield event.plain_result(f"皮肤图片发送失败：{e}")
         except Exception as e:
             logger.error(f"Render error: {e}", exc_info=True)
             yield event.plain_result(f"皮肤渲染失败：{e}")
+
+    async def _send_skin_images(self, event: AstrMessageEvent, preview_path: Path, gif_path: Path):
+        try:
+            await event.send(event.chain_result([
+                Image.fromFileSystem(str(preview_path)),
+                Image.fromFileSystem(str(gif_path)),
+            ]))
+            return
+        except Exception as e:
+            logger.warning(f"Combined skin image send failed, sending separately: {e}")
+
+        failures = []
+        for path in (preview_path, gif_path):
+            try:
+                await event.send(event.image_result(str(path)))
+            except Exception as e:
+                logger.error(f"Failed to send {path.name}: {e}", exc_info=True)
+                failures.append(path.name)
+        if failures:
+            raise RuntimeError("无法发送 " + "、".join(failures))
 
     async def terminate(self):
         pass

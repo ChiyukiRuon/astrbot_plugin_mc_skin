@@ -3,4 +3,4 @@ display_name: Minecraft 皮肤 3D 查询
 short_desc: 查询 Minecraft 正版玩家皮肤并渲染为 3D 图片。
 desc: 通过 /mcskin <玩家ID> 查询正版玩家皮肤，或使用 /mcpreview 预览随消息发送的皮肤贴图。
 author: chemistryh2o(千雪琉音 Cover)
-version: 1.0.0(Ayaka)
+version: 1.0.1(Ayaka)
