@@ -1,6 +1,6 @@
 name: astrbot_plugin_mc_skin
 display_name: Minecraft 皮肤 3D 查询
 short_desc: 查询 Minecraft 正版玩家皮肤并渲染为 3D 图片。
-desc: 通过 /skin <玩家ID> 指令查询 Minecraft 正版玩家的皮肤，使用 Three.js 渲染为 3D 方块人图片。支持正面/背面/左侧/右侧/3D 视角五视图，可独立调节俯仰角。使用 UApiPro 接口。
-author: chemistryh2o
-version: 1.0.0
+desc: 通过 /mcskin <玩家ID> 查询正版玩家皮肤，或使用 /mcpreview 预览随消息发送的皮肤贴图。
+author: chemistryh2o(千雪琉音 Cover)
+version: 1.0.0(Ayaka)
