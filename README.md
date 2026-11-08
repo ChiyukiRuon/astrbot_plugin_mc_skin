@@ -7,6 +7,7 @@
 ## ✨ 功能
 
 - `/skin <玩家ID>` 查询 Minecraft 正版玩家皮肤
+- `/preview` 发送命令时附带皮肤图片即可预览
 - **3D 渲染**：使用 Three.js 将皮肤贴图映射到方块人模型
 - **五视图布局**：
   - 上排：正面 | 背面 | 3D 视角（下方显示玩家 ID）
@@ -28,10 +29,14 @@
 
 1. 下载本插件压缩包并解压
 2. 将 `astrbot_plugin_mc_skin` 文件夹放入 `AstrBot/data/plugins/` 目录
-3. 在 WebUI 插件管理中点击「重载插件」
-4. 确保已安装依赖：
+3. 在 AstrBot 使用的 Python 环境中，进入插件目录安装依赖：
    ```bash
-   pip install aiohttp
+   python -m pip install -r requirements.txt
+   ```
+4. 在 WebUI 插件管理中点击「重载插件」
+
+已有用户更新后也需安装新增的 `Pillow` 依赖，再重载插件。Docker 部署请在 AstrBot 容器内安装依赖。
+
 ---
 
 🚀 使用
@@ -81,6 +86,7 @@ angle_right int 0 右侧俯仰角
 ```
 · AstrBot >= 4.9.2
 · aiohttp — 异步 HTTP 请求
+· Pillow — 读取、校验皮肤图片并转换为 PNG，用于皮肤预览
 · 需要外网访问以加载 Three.js CDN
 
 ```

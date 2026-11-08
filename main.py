@@ -1,10 +1,15 @@
+import asyncio
+import base64
+from io import BytesIO
+
 import aiohttp
-from pathlib import Path
+from PIL import Image as PILImage
 
 from astrbot.api.event import filter, AstrMessageEvent
 from astrbot.api.star import Context, Star
 from astrbot.api import logger
 from astrbot.api import AstrBotConfig
+from astrbot.api.message_components import Image
 
 PLUGIN_NAME = "astrbot_plugin_mc_skin"
 
@@ -369,6 +374,43 @@ class SkinPlugin(Star):
             yield event.plain_result(f"❌ {resolved_name} 没有设置皮肤。")
             return
 
+        async for result in self._render_skin(event, skin_url, resolved_name):
+            yield result
+
+    @filter.command("preview")
+    async def preview(self, event: AstrMessageEvent):
+        '''预览随当前消息发送的第一张 Minecraft 皮肤贴图。'''
+        skin_image = next(
+            (part for part in event.get_messages() if isinstance(part, Image)),
+            None,
+        )
+        if skin_image is None:
+            yield event.plain_result(
+                "请在发送命令的同一条消息中附带一张 64×64 皮肤贴图。"
+            )
+            return
+
+        yield event.plain_result("🔍 正在生成皮肤预览...")
+        try:
+            image_base64 = await asyncio.wait_for(
+                skin_image.convert_to_base64(), timeout=15,
+            )
+            with PILImage.open(BytesIO(base64.b64decode(image_base64))) as image:
+                if image.size != (64, 64):
+                    yield event.plain_result("❌ 请发送 64×64 的 Minecraft 皮肤贴图原图。")
+                    return
+                output = BytesIO()
+                image.convert("RGBA").save(output, format="PNG")
+            skin_url = "data:image/png;base64," + base64.b64encode(output.getvalue()).decode("ascii")
+        except Exception as e:
+            logger.error(f"Skin image read error: {e}", exc_info=True)
+            yield event.plain_result("❌ 无法读取皮肤图片，请重新发送皮肤贴图原图后重试。")
+            return
+
+        async for result in self._render_skin(event, skin_url):
+            yield result
+
+    async def _render_skin(self, event: AstrMessageEvent, skin_url: str, resolved_name: str = ""):
         cell_w = self.config.get("cell_w", 400)
         cell_h = self.config.get("cell_h", 550)
 
@@ -398,7 +440,7 @@ class SkinPlugin(Star):
         if show_right:
             bottom_row.append({"angle_y": 90, "angle_x": angle_right, "label": "右侧"})
 
-        show_player_name = len(top_row) == 3 and len(bottom_row) == 2
+        show_player_name = bool(resolved_name) and len(top_row) == 3 and len(bottom_row) == 2
 
         if not top_row:
             top_row.append({"angle_y": 30, "angle_x": 25, "label": "默认", "show_player_id": True})
