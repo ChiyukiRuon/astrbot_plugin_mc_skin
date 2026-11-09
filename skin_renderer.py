@@ -32,6 +32,21 @@ NORMALS = {
     "bottom": (0, -1, 0),
 }
 
+# Timing and default deformation from friendswine's JellyAnimation / ClientConfig,
+# revision ed5461c942e6dabe64176cd75f3c81f70410a675. See docs/fwm.md.
+FWM_PERIOD = 0.91667
+FWM_KEYS = (0.0, 0.25, 0.45833, 0.70833, FWM_PERIOD)
+
+
+def _fwm_squash(seconds: float) -> float:
+    phase = max(0.0, seconds) % FWM_PERIOD
+    for index, end in enumerate(FWM_KEYS[1:]):
+        if phase <= end:
+            t = (phase - FWM_KEYS[index]) / (end - FWM_KEYS[index])
+            eased = t * t * (3 - 2 * t)
+            return eased if index % 2 == 0 else 1 - eased
+    return 0.0
+
 
 def _load_skin(data: bytes) -> Image.Image:
     image = Image.open(BytesIO(data))
@@ -264,11 +279,16 @@ def _render_view(
     subtitle: str | None,
     show_shadow: bool = True,
     show_caption: bool = True,
+    squash: float | None = None,
+    textured_quads=None,
 ):
     canvas = _gradient_background(size)
     width, height = size
     projected = []
-    for quad, color in _textured_quads(image, model):
+    quads = textured_quads if textured_quads is not None else _textured_quads(image, model)
+    for quad, color in quads:
+        if squash is not None:
+            quad = [(x * (1 + 0.5 * squash), y * (1 - 0.5 * squash), z) for x, y, z in quad]
         points = [_project(point, yaw, 12) for point in quad]
         depth = sum(point[2] for point in points) / 4
         projected.append((depth, points, color))
@@ -284,6 +304,12 @@ def _render_view(
     scale = min((width - 74) / (max_x - min_x), (drawing_height - 48) / (max_y - min_y))
     offset_x = width / 2 - (min_x + max_x) * scale / 2
     offset_y = 25 - min_y * scale
+    if squash is not None:
+        # Fixed framing for the entire cycle; resizing each deformed frame would
+        # cancel the squash. The world origin anchors the feet above the caption.
+        scale = min((width - 74) / 27, (drawing_height - 48) / 34)
+        offset_x = width / 2
+        offset_y = 25 + 32.5 * math.cos(math.radians(12)) * scale
 
     def screen(point):
         return round(point[0] * scale + offset_x), round(point[1] * scale + offset_y)
@@ -370,4 +396,30 @@ def render_skin_assets(
         optimize=False,
     )
     return preview_path, gif_path
+
+
+def render_fwm_gif(skin_data: bytes, player_name: str, output_dir: str | Path) -> Path:
+    image = _load_skin(skin_data)
+    model = _infer_model(image)
+    quads = _textured_quads(image, model)
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    gif_path = output_dir / "skin-fwm.gif"
+    # GIF delays are multiples of 10 ms. Round cumulative timestamps, rather
+    # than each delay, to keep the 0.91667 s cycle within 3.33 ms of the source.
+    frame_count = 28
+    ticks = [round(index * FWM_PERIOD * 100 / frame_count) for index in range(frame_count + 1)]
+    animation = []
+    for tick in ticks[:-1]:
+        seconds = tick / 100
+        animation.append(_render_view(
+            image, model, -360 * seconds / FWM_PERIOD, (440, 540), player_name, None,
+            squash=_fwm_squash(seconds), textured_quads=quads,
+        ))
+    animation[0].save(
+        gif_path, save_all=True, append_images=animation[1:],
+        duration=[(end - start) * 10 for start, end in zip(ticks, ticks[1:])],
+        loop=0, disposal=2, optimize=False,
+    )
+    return gif_path
 

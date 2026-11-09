@@ -11,7 +11,7 @@ from astrbot.api import logger
 from astrbot.api import AstrBotConfig
 from astrbot.api.message_components import Image
 
-from .skin_renderer import render_skin_assets
+from .skin_renderer import render_fwm_gif, render_skin_assets
 
 PLUGIN_NAME = "astrbot_plugin_mc_skin"
 
@@ -52,8 +52,19 @@ class SkinPlugin(Star):
         Args:
             username(string): Minecraft 正版玩家 ID
         '''
+        async for result in self._player_skin(event, username):
+            yield result
+
+    @filter.command("fwm")
+    async def fwm(self, event: AstrMessageEvent, username: str = ""):
+        '''查询玩家皮肤，发送按 friendswine 节奏旋转并反复回弹的 GIF。'''
+        async for result in self._player_skin(event, username, bouncing=True):
+            yield result
+
+    async def _player_skin(self, event: AstrMessageEvent, username: str, bouncing: bool = False):
         if not username:
-            yield event.plain_result("请提供 Minecraft 玩家 ID，例如：/mcskin Notch")
+            command = "fwm" if bouncing else "mcskin"
+            yield event.plain_result(f"请提供 Minecraft 玩家 ID，例如：/{command} Notch")
             return
 
         yield event.plain_result(f"正在查询 {username} 的皮肤...")
@@ -76,7 +87,7 @@ class SkinPlugin(Star):
             yield event.plain_result(f"皮肤下载失败：{e}")
             return
 
-        async for result in self._render_skin(event, skin_data, resolved_name):
+        async for result in self._render_skin(event, skin_data, resolved_name, bouncing=bouncing):
             yield result
 
     @filter.command("mcpreview")
@@ -119,14 +130,25 @@ class SkinPlugin(Star):
                         raise ValueError("皮肤文件大小超过 2 MB")
                 return bytes(data)
 
-    async def _render_skin(self, event: AstrMessageEvent, skin_data: bytes, resolved_name: str = ""):
+    async def _render_skin(
+        self, event: AstrMessageEvent, skin_data: bytes, resolved_name: str = "",
+        bouncing: bool = False,
+    ):
         try:
             with tempfile.TemporaryDirectory(prefix="astrbot_mc_skin_") as temp_dir:
-                preview_path, gif_path = await asyncio.to_thread(
-                    render_skin_assets, skin_data, resolved_name, Path(temp_dir),
-                )
+                if bouncing:
+                    gif_path = await asyncio.to_thread(
+                        render_fwm_gif, skin_data, resolved_name, Path(temp_dir),
+                    )
+                else:
+                    preview_path, gif_path = await asyncio.to_thread(
+                        render_skin_assets, skin_data, resolved_name, Path(temp_dir),
+                    )
                 try:
-                    await self._send_skin_images(event, preview_path, gif_path)
+                    if bouncing:
+                        await event.send(event.image_result(str(gif_path)))
+                    else:
+                        await self._send_skin_images(event, preview_path, gif_path)
                 except Exception as e:
                     logger.error(f"Skin image send error: {e}", exc_info=True)
                     yield event.plain_result(f"皮肤图片发送失败：{e}")
